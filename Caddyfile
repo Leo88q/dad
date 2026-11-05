@@ -1,0 +1,22 @@
+{
+  servers {
+    max_header_size 16KB
+    timeouts {
+      read_header 5s
+      read_body 10s
+      write 30s
+      idle 30s
+    }
+  }
+}
+{$APP_DOMAIN} {
+  encode zstd gzip
+  reverse_proxy edge:8080 {
+    # Direct public origin: overwrite any client-supplied forwarding chain.
+    header_up X-Forwarded-For {http.request.remote.host}
+    transport http {
+      dial_timeout 3s
+      response_header_timeout 25s
+    }
+  }
+}

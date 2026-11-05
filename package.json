@@ -1,0 +1,35 @@
+{
+  "name": "ryadom",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test test/*.test.js",
+    "check": "node --check server.js && node --check public/app.js && node --check public/content.js && node --check lib/reviews.js && node --check scripts/backup.js && node --check scripts/restore.js && node --check lib/access.js && node --check lib/max.js && node --check public/max.js && node --check public/catalog.js && node --check lib/config.js && node --check scripts/preflight.js && node --check lib/recovery.js && node --check scripts/release-restore.js && node --check public/scenarios.js && node --check public/lesson-depth.js && node --check lib/encrypted-backup.js && node --check scripts/encrypted-backup.js && node --check scripts/decrypt-backup.js && node --check scripts/backup-key.js && node --check scripts/backup-health.js && node --check lib/rate-limit.js",
+    "test:e2e": "playwright test",
+    "test:all": "npm run check && npm test && npm run test:e2e && npm run test:load && npm run test:edge",
+    "backup": "node scripts/backup.js",
+    "restore": "node scripts/restore.js",
+    "test:load": "node scripts/load-test.js",
+    "preflight": "node scripts/preflight.js",
+    "release-restore": "node scripts/release-restore.js",
+    "backup:encrypted": "node scripts/encrypted-backup.js",
+    "backup:daemon": "node scripts/encrypted-backup.js --daemon",
+    "backup:health": "node scripts/backup-health.js",
+    "backup:decrypt": "node scripts/decrypt-backup.js",
+    "test:edge": "sh scripts/test-edge.sh"
+  },
+  "dependencies": {
+    "express": "^5.1.0"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "^4.14.0",
+    "@playwright/test": "^1.64.1",
+    "@sparticuz/chromium": "^143.0.4",
+    "jsdom": "^26.1.0"
+  },
+  "engines": {
+    "node": ">=22.16.0"
+  }
+}
