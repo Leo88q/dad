@@ -55,7 +55,7 @@ jobs:
           check nginx-start docker run -d --name ryadom-edge -p 127.0.0.1:3301:8080 --network ryadom-edge-check --user 101:101 --read-only --tmpfs /tmp --cap-drop ALL --entrypoint nginx -v "$PWD/deploy/nginx:/etc/nginx:ro" nginx:1.30.6-alpine -g 'daemon off;'
           check edge-health curl --fail --retry 15 --retry-delay 1 --retry-connrefused http://127.0.0.1:3301/edge-health
           check upstream-health curl --fail --retry 15 --retry-delay 1 --retry-connrefused http://127.0.0.1:3301/readyz
-          check caddy-config docker run --rm --network none -e APP_DOMAIN=ci.ryadom.invalid -v "$PWD/Caddyfile:/etc/caddy/Caddyfile:ro" caddy:2.11.9-alpine caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
+          check caddy-config docker run --rm --network none -e APP_DOMAIN=ci.ryadom.invalid -v "$PWD/Caddyfile:/etc/caddy/Caddyfile:ro" caddy:2.11.8-alpine caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
       - name: Refuse an unconfigured production launch
         run: |
           if docker run --rm ryadom:ci; then

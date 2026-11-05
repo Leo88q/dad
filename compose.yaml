@@ -28,7 +28,7 @@ services:
       driver: json-file
       options: { max-size: 10m, max-file: "3" }
   proxy:
-    image: caddy:2.11.9-alpine
+    image: caddy:2.11.8-alpine
     restart: unless-stopped
     environment:
       APP_DOMAIN: ${APP_DOMAIN:?Set APP_DOMAIN to your real public domain}
