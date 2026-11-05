@@ -1,0 +1,127 @@
+services:
+  app:
+    image: ryadom:local
+    build: .
+    restart: unless-stopped
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DATA_DIR: /app/data
+      TRUST_PROXY: 172.29.0.0/24
+      MAX_BOT_TOKEN: ${MAX_BOT_TOKEN:?Set MAX_BOT_TOKEN privately on the server}
+      MAX_BOT_NAME: ${MAX_BOT_NAME:?Set your MAX bot username}
+      MAX_ONLY: ${MAX_ONLY:-true}
+      PUBLIC_URL: https://${APP_DOMAIN:?Set APP_DOMAIN to your real public domain}
+      OPERATOR_NAME: ${OPERATOR_NAME:?Set the legal operator name}
+      SUPPORT_EMAIL: ${SUPPORT_EMAIL:?Set the support email}
+      PRIVACY_POLICY_URL: ${PRIVACY_POLICY_URL:?Set the published privacy policy URL}
+      TERMS_URL: ${TERMS_URL:?Set the published terms URL}
+      DATA_POLICY_VERSION: ${DATA_POLICY_VERSION:?Set the document version}
+    volumes:
+      - app-data:/app/data
+    networks: [backend]
+    logging:
+      driver: json-file
+      options: { max-size: 10m, max-file: "3" }
+  proxy:
+    image: caddy:2.11.9-alpine
+    restart: unless-stopped
+    environment:
+      APP_DOMAIN: ${APP_DOMAIN:?Set APP_DOMAIN to your real public domain}
+    ports: ["80:80", "443:443"]
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      edge: { condition: service_healthy }
+    networks: [front]
+    logging:
+      driver: json-file
+      options: { max-size: 10m, max-file: "3" }
+  edge:
+    image: nginx:1.30.6-alpine
+    restart: unless-stopped
+    user: "101:101"
+    entrypoint: [nginx, -g, "daemon off;"]
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    mem_limit: 256m
+    cpus: 1.0
+    pids_limit: 128
+    ulimits:
+      nofile: { soft: 8192, hard: 8192 }
+    volumes:
+      - ./deploy/nginx:/etc/nginx:ro
+    networks: [front, backend]
+    depends_on:
+      app: { condition: service_healthy }
+    healthcheck:
+      test: [CMD, wget, -q, -O, /dev/null, http://127.0.0.1:8080/edge-health]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    logging:
+      driver: json-file
+      options: { max-size: 10m, max-file: "3" }
+  backup-worker:
+    image: ryadom:local
+    restart: unless-stopped
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    command: [node, scripts/encrypted-backup.js, --daemon]
+    environment:
+      DATA_DIR: /app/data
+      BACKUP_DIR: /app/backups/encrypted
+      BACKUP_KEY_FILE: /run/secrets/backup-key
+      BACKUP_INTERVAL_SECONDS: ${BACKUP_INTERVAL_SECONDS:-21600}
+      BACKUP_KEEP: ${BACKUP_KEEP:-56}
+    volumes:
+      - app-data:/app/data:ro
+      - app-backups:/app/backups
+      - ${BACKUP_KEY_HOST_FILE:?Set an absolute path to the private backup key file}:/run/secrets/backup-key:ro
+    network_mode: none
+    depends_on:
+      app: { condition: service_healthy }
+    healthcheck:
+      test: [CMD, node, scripts/backup-health.js]
+      interval: 60s
+      timeout: 10s
+      start_period: 120s
+      retries: 2
+    logging:
+      driver: json-file
+      options: { max-size: 10m, max-file: "3" }
+  backup:
+    image: ryadom:local
+    profiles: [tools]
+    user: node
+    read_only: true
+    command: [node, scripts/backup.js, /app/backups]
+    environment:
+      DATA_DIR: /app/data
+    volumes:
+      - app-data:/app/data
+      - app-backups:/app/backups
+    network_mode: none
+volumes:
+  app-data:
+  app-backups:
+  caddy-data:
+  caddy-config:
+networks:
+  front:
+    ipam:
+      config: [{ subnet: 172.28.0.0/24 }]
+  backend:
+    internal: true
+    ipam:
+      config: [{ subnet: 172.29.0.0/24 }]

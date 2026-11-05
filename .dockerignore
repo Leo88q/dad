@@ -1,0 +1,13 @@
+.git
+node_modules
+data
+test
+.env
+*.log
+backups
+e2e
+playwright-report
+test-results
+.cache
+
+test-edge
